@@ -2,7 +2,7 @@ class GhqWorktreeSelect < Formula
   desc "Select and create git worktrees from ghq-managed repositories"
   homepage "https://github.com/ToshikiImagawa/ghq-worktree-select"
   url "https://github.com/ToshikiImagawa/ghq-worktree-select/archive/refs/tags/v1.1.0.tar.gz"
-  sha256 "4ecccce02045ea8eaa8882012e46e11d77881bb48752b367d2f23c12b9918d74"
+  sha256 "e7e66f7a1eacaa77d18a650d4400894ab39af8a9c5e03e18569d326382f13e60"
   license "MIT"
 
   depends_on "fzf"
