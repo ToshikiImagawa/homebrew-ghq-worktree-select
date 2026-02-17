@@ -1,0 +1,116 @@
+name: Update Formula
+
+on:
+  # 手動実行
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to update (e.g., v1.1.0)'
+        required: true
+        type: string
+
+  # 毎日1回、上流リポジトリの最新リリースをチェック
+  schedule:
+    - cron: '0 0 * * *'  # 毎日UTC 0:00（JST 9:00）
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get latest version
+        id: version
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            # 手動実行の場合は入力されたバージョンを使用
+            VERSION="${{ inputs.version }}"
+          else
+            # 定期実行の場合は最新リリースを取得
+            VERSION=$(curl -s https://api.github.com/repos/ToshikiImagawa/ghq-worktree-select/releases/latest | jq -r .tag_name)
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Latest version: $VERSION"
+
+      - name: Check if already updated
+        id: check
+        run: |
+          CURRENT_VERSION=$(grep -oP 'archive/refs/tags/\K[^.]+\.[^.]+\.[^/]+' ghq-worktree-select.rb || echo "none")
+          NEW_VERSION="${{ steps.version.outputs.version }}"
+
+          echo "Current version: $CURRENT_VERSION"
+          echo "New version: $NEW_VERSION"
+
+          if [ "$CURRENT_VERSION" = "$NEW_VERSION" ]; then
+            echo "already_updated=true" >> $GITHUB_OUTPUT
+            echo "フォーミュラは既に最新バージョンです"
+          else
+            echo "already_updated=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Calculate SHA256
+        if: steps.check.outputs.already_updated == 'false'
+        id: sha256
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          URL="https://github.com/ToshikiImagawa/ghq-worktree-select/archive/refs/tags/${VERSION}.tar.gz"
+
+          echo "Downloading $URL"
+          SHA256=$(curl -sL "$URL" | shasum -a 256 | awk '{print $1}')
+
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+          echo "SHA256: $SHA256"
+
+      - name: Update formula
+        if: steps.check.outputs.already_updated == 'false'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          SHA256="${{ steps.sha256.outputs.sha256 }}"
+
+          # URLを更新
+          sed -i "s|archive/refs/tags/v[0-9]\+\.[0-9]\+\.[0-9]\+\.tar\.gz|archive/refs/tags/${VERSION}.tar.gz|g" ghq-worktree-select.rb
+
+          # SHA256を更新
+          sed -i "s/sha256 \"[a-f0-9]\+\"/sha256 \"${SHA256}\"/" ghq-worktree-select.rb
+
+          echo "フォーミュラを更新しました"
+          cat ghq-worktree-select.rb
+
+      - name: Create Pull Request
+        if: steps.check.outputs.already_updated == 'false'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: |
+            [update] ghq-worktree-selectを${{ steps.version.outputs.version }}に更新
+
+            Co-Authored-By: GitHub Actions <actions@github.com>
+          branch: update-formula-${{ steps.version.outputs.version }}
+          delete-branch: true
+          title: "[update] ghq-worktree-selectを${{ steps.version.outputs.version }}に更新"
+          body: |
+            ## 概要
+
+            ghq-worktree-selectを${{ steps.version.outputs.version }}に自動更新しました。
+
+            ## 変更内容
+
+            - バージョン: ${{ steps.version.outputs.version }}
+            - SHA256: `${{ steps.sha256.outputs.sha256 }}`
+
+            ## 確認項目
+
+            - [ ] フォーミュラの構文が正しいか
+            - [ ] SHA256ハッシュが正しいか
+            - [ ] 上流リポジトリのリリースノートを確認
+
+            ---
+
+            🤖 このPRは [GitHub Actions](.github/workflows/update-formula.yml) によって自動生成されました。
+          labels: |
+            automated
+            dependencies
