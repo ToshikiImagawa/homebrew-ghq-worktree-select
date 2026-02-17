@@ -5,8 +5,8 @@ class GhqWorktreeSelect < Formula
   sha256 "35fc82f6db500dfc0ffa5933b81d62820dd46c2ce0a2153a6459bff56bb2881d"
   license "MIT"
 
-  depends_on "ghq"
   depends_on "fzf"
+  depends_on "ghq"
   depends_on "git"
 
   def install
