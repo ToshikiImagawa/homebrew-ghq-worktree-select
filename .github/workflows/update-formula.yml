@@ -40,7 +40,7 @@ jobs:
       - name: Check if already updated
         id: check
         run: |
-          CURRENT_VERSION=$(grep -oP 'archive/refs/tags/\K[^.]+\.[^.]+\.[^/]+' ghq-worktree-select.rb || echo "none")
+          CURRENT_VERSION=$(grep -oP 'releases/download/\K[^/]+' ghq-worktree-select.rb || echo "none")
           NEW_VERSION="${{ steps.version.outputs.version }}"
 
           echo "Current version: $CURRENT_VERSION"
@@ -58,7 +58,7 @@ jobs:
         id: sha256
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          URL="https://github.com/ToshikiImagawa/ghq-worktree-select/archive/refs/tags/${VERSION}.tar.gz"
+          URL="https://github.com/ToshikiImagawa/ghq-worktree-select/releases/download/${VERSION}/ghq-worktree-select-${VERSION}.tar.gz"
 
           echo "Downloading $URL"
           SHA256=$(curl -sL "$URL" | shasum -a 256 | awk '{print $1}')
@@ -73,7 +73,7 @@ jobs:
           SHA256="${{ steps.sha256.outputs.sha256 }}"
 
           # URLを更新
-          sed -i "s|archive/refs/tags/v[0-9]\+\.[0-9]\+\.[0-9]\+\.tar\.gz|archive/refs/tags/${VERSION}.tar.gz|g" ghq-worktree-select.rb
+          sed -i "s|releases/download/v[0-9]\+\.[0-9]\+\.[0-9]\+/ghq-worktree-select-v[0-9]\+\.[0-9]\+\.[0-9]\+\.tar\.gz|releases/download/${VERSION}/ghq-worktree-select-${VERSION}.tar.gz|g" ghq-worktree-select.rb
 
           # SHA256を更新
           sed -i "s/sha256 \"[a-f0-9]\+\"/sha256 \"${SHA256}\"/" ghq-worktree-select.rb
