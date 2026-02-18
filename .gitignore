@@ -17,3 +17,6 @@
 
 # Local settings for Claude
 *.local.json
+
+# ghq worktree symlinks
+.ghq-worktree-symlinks
