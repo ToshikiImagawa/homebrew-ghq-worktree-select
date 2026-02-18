@@ -10,7 +10,7 @@ class GhqWorktreeSelect < Formula
   depends_on "git"
 
   def install
-    bin.install "ghq-worktree-select.sh" => "ghq-worktree-select"
+    bin.install "ghq-worktree-select"
   end
 
   test do
